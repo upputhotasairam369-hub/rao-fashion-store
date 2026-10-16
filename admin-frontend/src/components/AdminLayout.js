@@ -17,30 +17,42 @@ const AdminLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#F5F5F3]">
       {/* Admin Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-black text-white border-b-2 border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">A</span>
+                <div className="w-9 h-9 bg-[#CCFF00] text-black font-black text-xl flex items-center justify-center font-mono">
+                  RT
                 </div>
               </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">Admin Panel</h1>
-                <p className="text-sm text-gray-500">E-commerce Store Management</p>
+              <div className="ml-3">
+                <h1 className="text-base font-bold uppercase tracking-tight text-white">
+                  RAO'S THRIFT
+                </h1>
+                <p className="text-[10px] font-mono tracking-widest text-[#CCFF00] uppercase">
+                  STORE MANAGEMENT CONSOLE
+                </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, <span className="font-medium">{admin?.first_name}</span>
+              <span className="text-xs font-mono text-gray-300">
+                OPERATOR: <span className="font-bold text-white">{admin?.email || admin?.first_name || 'Admin'}</span>
               </span>
+              <a
+                href="http://localhost:3000"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:inline-block px-3 py-1.5 border border-gray-600 hover:border-[#CCFF00] text-[#CCFF00] text-xs font-mono font-bold uppercase transition-colors"
+              >
+                Storefront ↗
+              </a>
               <button
                 onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-white text-black hover:bg-[#CCFF00] px-3.5 py-1.5 text-xs font-mono font-bold uppercase transition-colors"
               >
                 Logout
               </button>
@@ -51,60 +63,62 @@ const AdminLayout = ({ children }) => {
 
       <div className="flex">
         {/* Sidebar */}
-        <nav className="w-64 bg-white shadow-sm min-h-screen">
-          <div className="p-4">
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/"
-                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive('/') 
-                      ? 'bg-red-100 text-red-700 border-r-2 border-red-600' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                  </svg>
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/products"
-                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive('/products') 
-                      ? 'bg-red-100 text-red-700 border-r-2 border-red-600' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  Products
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/orders"
-                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive('/orders') 
-                      ? 'bg-red-100 text-red-700 border-r-2 border-red-600' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  Orders
-                </Link>
-              </li>
-            </ul>
+        <nav className="w-60 bg-white border-r-2 border-black min-h-[calc(100vh-4rem)] flex-shrink-0">
+          <div className="p-4 space-y-6">
+            <div>
+              <p className="text-[10px] font-mono font-bold uppercase text-gray-400 tracking-wider mb-2">
+                MAIN NAVIGATION
+              </p>
+              <ul className="space-y-1">
+                <li>
+                  <Link
+                    to="/"
+                    className={`flex items-center px-3 py-2 text-xs font-mono font-bold uppercase transition-colors ${
+                      isActive('/') 
+                        ? 'bg-black text-[#CCFF00]' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Dashboard Overview
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products"
+                    className={`flex items-center px-3 py-2 text-xs font-mono font-bold uppercase transition-colors ${
+                      isActive('/products') 
+                        ? 'bg-black text-[#CCFF00]' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Pieces & Inventory
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/orders"
+                    className={`flex items-center px-3 py-2 text-xs font-mono font-bold uppercase transition-colors ${
+                      isActive('/orders') 
+                        ? 'bg-black text-[#CCFF00]' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Fulfillment Orders
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200 text-[10px] font-mono text-gray-400 leading-relaxed">
+              RAO'S THRIFT ADMIN<br />
+              FASTAPI + POSTGRESQL<br />
+              SINGLE-STOCK ENGINE ACTIVE
+            </div>
           </div>
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-x-hidden">
           {children}
         </main>
       </div>

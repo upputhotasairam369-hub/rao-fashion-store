@@ -3,70 +3,94 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-brand: #F2EFE8;
+    --fg-brand: #151515;
+    --accent-brand: #CCFF00;
+    --neutral-brand: #787873;
+    --surface-brand: #FFFFFF;
+    --border-brand: #D6D3CD;
+  }
+
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #F2EFE8;
+    color: #151515;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: #F2EFE8;
+    color: #151515;
+    overflow-x: hidden;
   }
   
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', system-ui, sans-serif;
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
   }
 }
 
 @layer components {
+  /* Editorial Streetwear Button Hierarchy */
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
-  }
-  
-  .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg border border-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center bg-[#151515] text-[#F2EFE8] font-bold text-xs uppercase tracking-widest py-3.5 px-6 border border-[#151515] transition-all duration-200 hover:bg-[#CCFF00] hover:text-[#151515] hover:border-[#CCFF00] active:translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none;
   }
   
   .btn-accent {
-    @apply bg-accent-600 hover:bg-accent-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center bg-[#CCFF00] text-[#151515] font-bold text-xs uppercase tracking-widest py-3.5 px-6 border border-[#151515] shadow-brutal-sm transition-all duration-200 hover:bg-[#151515] hover:text-[#CCFF00] hover:border-[#151515] active:translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center bg-white text-[#151515] font-bold text-xs uppercase tracking-widest py-3.5 px-6 border border-[#D6D3CD] transition-all duration-200 hover:border-[#151515] hover:bg-[#F2EFE8] active:translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-outline-dark {
+    @apply inline-flex items-center justify-center bg-transparent text-[#151515] font-bold text-xs uppercase tracking-widest py-3.5 px-6 border-2 border-[#151515] transition-all duration-200 hover:bg-[#151515] hover:text-[#CCFF00] active:translate-y-0.5;
   }
   
+  /* Streetwear Editorial Inputs */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+    @apply w-full px-4 py-3 bg-white text-[#151515] placeholder-[#787873] border border-[#D6D3CD] rounded-none focus:outline-none focus:border-[#151515] focus:ring-1 focus:ring-[#151515] transition-all duration-200 font-sans text-sm;
   }
-  
-  .card {
-    @apply bg-white rounded-lg shadow-soft border border-gray-100 overflow-hidden;
+
+  /* Editorial Card Structure */
+  .editorial-card {
+    @apply bg-white border border-[#D6D3CD] transition-all duration-300;
   }
-  
-  .product-card {
-    @apply card hover:shadow-medium transition-all duration-300 transform hover:-translate-y-1;
+
+  .editorial-card:hover {
+    @apply border-[#151515];
   }
-  
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+
+  /* Condition / Thrift Badges */
+  .badge-condition {
+    @apply inline-block px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border border-[#151515] bg-[#F2EFE8] text-[#151515];
   }
-  
-  .badge-success {
-    @apply bg-success-100 text-success-800;
+
+  .badge-condition-nwt {
+    @apply inline-block px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-[#CCFF00] text-[#151515] border border-[#151515];
   }
-  
-  .badge-warning {
-    @apply bg-yellow-100 text-yellow-800;
-  }
-  
-  .badge-error {
-    @apply bg-accent-100 text-accent-800;
-  }
-  
-  .badge-info {
-    @apply bg-primary-100 text-primary-800;
+
+  .badge-sold-out {
+    @apply inline-block px-2.5 py-1 text-xs uppercase font-black tracking-widest bg-[#151515] text-[#F2EFE8];
   }
 }
 
 @layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  .stroke-text {
+    -webkit-text-stroke: 1px #151515;
+    color: transparent;
   }
   
+  .stroke-text-white {
+    -webkit-text-stroke: 1px #F2EFE8;
+    color: transparent;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -77,5 +101,20 @@
   }
 }
 
+/* Marquee keyframe animation */
+@keyframes marquee-infinite {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
 
+.animate-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-infinite 20s linear infinite;
+}
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-track {
+    animation: none;
+  }
+}

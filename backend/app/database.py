@@ -1,25 +1,31 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.models import Base
+from datetime import datetime
 import os
 
-# Database URL
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@postgres:5432/ecommerce")
+# Database URL - default to SQLite for local development if PostgreSQL not available
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ecommerce.db")
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-# Create engine with connection pool settings for Cloud Run
-# Use echo=False to avoid logging all SQL queries
-# Set pool_pre_ping to verify connections before using
-# IMPORTANT: Don't connect immediately - use pool_pre_ping to verify on first use
 try:
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,  # Verify connections before using
-        pool_recycle=300,    # Recycle connections after 5 minutes
-        connect_args={"connect_timeout": 5},  # 5 second connection timeout (reduced from 10)
-        echo=False,  # Don't echo SQL queries
-        pool_size=5,  # Limit pool size
-        max_overflow=10  # Limit overflow connections
-    )
+    if DATABASE_URL.startswith("sqlite"):
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            echo=False
+        )
+    else:
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            connect_args={"connect_timeout": 5},
+            echo=False,
+            pool_size=5,
+            max_overflow=10
+        )
     print("✅ Database engine created (connection will be tested on first use)", flush=True)
 except Exception as e:
     print(f"⚠️ Warning: Could not create database engine: {e}", flush=True)
@@ -110,70 +116,22 @@ def init_db():
                     )
                     db.add(product)
             
-            if db.query(User).count() == 0:
-                # Add sample users with hashed passwords
-                sample_users = [
-                    {
-                        "id": "admin_1",
-                        "email": "admin@ecommerce.com",
-                        "name": "Admin User",
-                        "password": "admin123",
-                        "role": "admin"
-                    },
-                    {
-                        "id": "user_1", 
-                        "email": "test@example.com",
-                        "name": "Test User",
-                        "password": "password",
-                        "role": "customer"
-                    }
-                ]
-                
-                for user_data in sample_users:
-                    try:
-                        # Ensure password is a string
-                        password_str = str(user_data["password"])
-                        # Truncate to 72 bytes if needed (bcrypt limit)
-                        # Convert to bytes, truncate, then back to string
-                        password_bytes = password_str.encode('utf-8')
-                        if len(password_bytes) > 72:
-                            password_bytes = password_bytes[:72]
-                            password_str = password_bytes.decode('utf-8', errors='ignore')
-                        
-                        # Hash the password - ensure it's not longer than 72 bytes
-                        # Double-check byte length before hashing
-                        password_bytes_check = password_str.encode('utf-8')
-                        if len(password_bytes_check) > 72:
-                            password_str = password_bytes_check[:72].decode('utf-8', errors='ignore')
-                        
-                        # Hash the password
-                        password_hash = pwd_context.hash(password_str)
-                        
-                        user = User(
-                            id=user_data["id"],
-                            email=user_data["email"],
-                            name=user_data["name"],
-                            password_hash=password_hash,
-                            role=user_data["role"]
-                        )
-                        db.add(user)
-                        print(f"✅ User '{user_data['email']}' added.", flush=True)
-                    except ValueError as ve:
-                        # Handle bcrypt password length error specifically
-                        if "password cannot be longer than 72 bytes" in str(ve):
-                            print(f"⚠️ Password for {user_data['email']} too long, skipping...", flush=True)
-                        else:
-                            print(f"❌ Error adding user '{user_data['email']}': {ve}", flush=True)
-                            import traceback
-                            traceback.print_exc()
-                        # Continue with next user
-                        continue
-                    except Exception as e:
-                        print(f"❌ Error adding user '{user_data['email']}': {e}", flush=True)
-                        import traceback
-                        traceback.print_exc()
-                        # Continue with next user
-                        continue
+            initial_admin_email = os.getenv("INITIAL_ADMIN_EMAIL")
+            initial_admin_pass = os.getenv("INITIAL_ADMIN_PASSWORD")
+            
+            if initial_admin_email and initial_admin_pass:
+                existing_admin = db.query(User).filter(User.email == initial_admin_email).first()
+                if not existing_admin:
+                    password_hash = pwd_context.hash(initial_admin_pass[:72])
+                    admin_user = User(
+                        id=f"admin_{int(datetime.utcnow().timestamp())}",
+                        email=initial_admin_email,
+                        name=os.getenv("INITIAL_ADMIN_NAME", "Store Administrator"),
+                        password_hash=password_hash,
+                        role="admin"
+                    )
+                    db.add(admin_user)
+                    print(f"✅ Initial admin user '{initial_admin_email}' created from environment config.", flush=True)
             
             db.commit()
             print("✅ Database initialized with sample data", flush=True)

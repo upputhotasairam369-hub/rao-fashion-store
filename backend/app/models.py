@@ -31,6 +31,11 @@ class Product(Base):
     image_url = Column(String)
     stock = Column(Integer, default=0)
     rating = Column(Float, default=0.0)
+    size = Column(String, default="One Size")
+    condition = Column(String, default="Good")
+    measurements = Column(String, nullable=True)
+    flaws = Column(String, nullable=True)
+    is_featured = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

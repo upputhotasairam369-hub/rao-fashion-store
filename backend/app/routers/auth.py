@@ -40,27 +40,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
 
-# Mock user storage (replace with database in production)
-users_db = {
-    # Pre-created admin user
-    "admin@ecommerce.com": {
-        "id": "admin_1",
-        "email": "admin@ecommerce.com",
-        "password": "admin123",
-        "first_name": "Admin",
-        "last_name": "User",
-        "role": "admin"
-    },
-    # Pre-created test user
-    "test@example.com": {
-        "id": "user_1",
-        "email": "test@example.com",
-        "password": "password",
-        "first_name": "Test",
-        "last_name": "User",
-        "role": "customer"
-    }
-}
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -189,6 +169,8 @@ async def get_current_user(current_user_id: str = Depends(verify_token), db: Ses
             "last_name": last_name,
             "role": user.role
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

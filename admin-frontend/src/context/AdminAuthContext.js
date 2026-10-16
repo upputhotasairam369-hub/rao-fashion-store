@@ -17,8 +17,13 @@ export const AdminAuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Check if admin is already logged in
-    const token = localStorage.getItem('admin_token');
+    // Check if admin is already logged in or token passed in query
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const urlToken = urlParams ? urlParams.get('token') : null;
+    if (urlToken) {
+      localStorage.setItem('admin_token', urlToken);
+    }
+    const token = urlToken || localStorage.getItem('admin_token');
     if (token) {
       checkAdminStatus();
     } else {

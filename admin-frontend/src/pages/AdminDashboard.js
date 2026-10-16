@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api, endpoints } from '../api/api';
 
 const AdminDashboard = () => {
@@ -11,171 +11,185 @@ const AdminDashboard = () => {
     pending_orders: 0,
     low_stock_products: 0
   });
+  const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
+    fetchDashboardData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch admin stats from the backend API using the configured api instance
-      const response = await api.get(endpoints.admin.stats);
-      setStats(response.data);
+      const [statsRes, ordersRes] = await Promise.all([
+        api.get(endpoints.admin.stats),
+        api.get(endpoints.admin.orders.list).catch(() => ({ data: [] }))
+      ]);
+
+      setStats(statsRes.data);
+      setRecentOrders(Array.isArray(ordersRes.data) ? ordersRes.data.slice(0, 5) : []);
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
-      // Fallback to mock data if API fails
-      setStats({
-        total_products: 8,
-        total_orders: 3,
-        total_revenue: 239.94,
-        pending_orders: 1,
-        low_stock_products: 2
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickAction = (action) => {
-    switch (action) {
-      case 'add-product':
-        navigate('/products');
-        break;
-      case 'view-orders':
-        navigate('/orders');
-        break;
-      case 'generate-report':
-        // For now, just show an alert. In a real app, this would generate a report
-        alert('Report generation feature coming soon!');
-        break;
-      default:
-        break;
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
-      
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Products</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.total_products}</dd>
-                </dl>
-              </div>
-            </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      {/* Page Header */}
+      <div className="border-b-2 border-black pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <span className="text-xs font-mono font-bold tracking-widest uppercase text-gray-500">
+            RAO'S THRIFT — STORE MANAGEMENT
+          </span>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-gray-900 mt-1">
+            EXECUTIVE OVERVIEW
+          </h1>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/products')}
+            className="px-4 py-2 bg-black text-white hover:bg-gray-800 text-xs font-mono font-bold uppercase"
+          >
+            Manage Inventory
+          </button>
+          <button
+            onClick={() => navigate('/orders')}
+            className="px-4 py-2 border border-black hover:bg-gray-100 text-xs font-mono font-bold uppercase"
+          >
+            Fulfillment Queue
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Total Revenue */}
+        <div className="bg-white border-2 border-black p-5 shadow-sm">
+          <div className="text-xs font-mono uppercase text-gray-500 tracking-wider">
+            TOTAL REALIZED REVENUE
+          </div>
+          <div className="text-2xl font-black text-gray-900 mt-2 font-mono">
+            ₹{Number(stats.total_revenue || 0).toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10px] font-mono text-emerald-700 mt-1 font-bold">
+            CALCULATED FROM ACTUAL ORDERS
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.total_orders}</dd>
-                </dl>
-              </div>
-            </div>
+        {/* Total Orders */}
+        <div className="bg-white border-2 border-black p-5 shadow-sm">
+          <div className="text-xs font-mono uppercase text-gray-500 tracking-wider">
+            LIFETIME ORDERS
+          </div>
+          <div className="text-2xl font-black text-gray-900 mt-2 font-mono">
+            {stats.total_orders}
+          </div>
+          <div className="text-[10px] font-mono text-gray-500 mt-1">
+            PENDING ACTION: <span className="font-bold text-amber-600">{stats.pending_orders}</span>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
-                  <dd className="text-lg font-medium text-gray-900">${stats.total_revenue.toFixed(2)}</dd>
-                </dl>
-              </div>
-            </div>
+        {/* Total Products */}
+        <div className="bg-white border-2 border-black p-5 shadow-sm">
+          <div className="text-xs font-mono uppercase text-gray-500 tracking-wider">
+            ACTIVE THRIFT PIECES
+          </div>
+          <div className="text-2xl font-black text-gray-900 mt-2 font-mono">
+            {stats.total_products}
+          </div>
+          <div className="text-[10px] font-mono text-gray-500 mt-1">
+            CURATED CATALOG ITEMS
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending Orders</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.pending_orders}</dd>
-                </dl>
-              </div>
-            </div>
+        {/* Low Stock Pieces */}
+        <div className="bg-white border-2 border-black p-5 shadow-sm">
+          <div className="text-xs font-mono uppercase text-gray-500 tracking-wider">
+            LOW STOCK / 1-OF-1 ITEMS
+          </div>
+          <div className="text-2xl font-black text-amber-600 mt-2 font-mono">
+            {stats.low_stock_products}
+          </div>
+          <div className="text-[10px] font-mono text-gray-500 mt-1">
+            PIECES WITH ≤ 3 UNITS REMAINING
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button 
-              onClick={() => handleQuickAction('add-product')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-            >
-              Add New Product
-            </button>
-            <button 
-              onClick={() => handleQuickAction('view-orders')}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-            >
-              View All Orders
-            </button>
-            <button 
-              onClick={() => handleQuickAction('generate-report')}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-            >
-              Generate Report
-            </button>
-          </div>
+      {/* Recent Orders Table */}
+      <div className="bg-white border-2 border-black shadow-sm overflow-hidden">
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="font-bold uppercase tracking-wider text-sm font-mono text-gray-900">
+            RECENT STORE ORDERS
+          </h2>
+          <Link to="/orders" className="text-xs font-mono text-black hover:underline font-bold uppercase">
+            VIEW ALL ORDERS →
+          </Link>
         </div>
+
+        {recentOrders.length === 0 ? (
+          <div className="p-8 text-center text-xs font-mono text-gray-500">
+            No customer orders placed yet. Orders created on customer storefront will show here instantly.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-xs font-mono">
+              <thead className="bg-gray-100 text-gray-700">
+                <tr>
+                  <th className="px-4 py-3 text-left font-bold uppercase">Order ID</th>
+                  <th className="px-4 py-3 text-left font-bold uppercase">Customer Details</th>
+                  <th className="px-4 py-3 text-left font-bold uppercase">Items</th>
+                  <th className="px-4 py-3 text-left font-bold uppercase">Total (₹)</th>
+                  <th className="px-4 py-3 text-left font-bold uppercase">Status</th>
+                  <th className="px-4 py-3 text-right font-bold uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {recentOrders.map((ord) => (
+                  <tr key={ord.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-bold text-gray-900">#{ord.id}</td>
+                    <td className="px-4 py-3">
+                      {ord.shipping_address ? (
+                        <div>
+                          <p className="font-bold text-gray-900">{ord.shipping_address.first_name} {ord.shipping_address.last_name}</p>
+                          <p className="text-gray-500">{ord.shipping_address.city}, {ord.shipping_address.state}</p>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Direct Checkout</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">{ord.items?.length || 1} pieces</td>
+                    <td className="px-4 py-3 font-bold">₹{Number(ord.total).toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 uppercase text-[10px] font-bold border border-black bg-gray-100">
+                        {ord.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => navigate('/orders')}
+                        className="text-black underline font-bold hover:text-gray-600"
+                      >
+                        Manage
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

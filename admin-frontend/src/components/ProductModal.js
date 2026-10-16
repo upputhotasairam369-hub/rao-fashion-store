@@ -8,13 +8,34 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
     price: '',
     category: '',
     stock: '',
-    image_url: ''
+    image_url: '',
+    size: 'One Size',
+    condition: 'Good',
+    measurements: '',
+    flaws: '',
+    is_featured: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const categories = [
+    'Oversized Tees',
+    'Hoodies & Sweatshirts',
+    'Baggy Denim',
+    'Vintage Shirts',
+    'Jackets & Outerwear',
+    'Accessories'
+  ];
+
+  const conditions = [
+    'New With Tags',
+    'Like New',
+    'Good',
+    'Fair'
+  ];
 
   // Pre-fill form for edit mode
   useEffect(() => {
@@ -25,8 +46,13 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
           description: product.description || '',
           price: product.price || '',
           category: product.category || '',
-          stock: product.stock || '',
-          image_url: product.image_url || ''
+          stock: product.stock !== undefined ? product.stock : 1,
+          image_url: product.image_url || '',
+          size: product.size || 'One Size',
+          condition: product.condition || 'Good',
+          measurements: product.measurements || '',
+          flaws: product.flaws || '',
+          is_featured: Boolean(product.is_featured)
         });
         setImagePreview(product.image_url || '');
       } else {
@@ -34,21 +60,27 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
           name: '',
           description: '',
           price: '',
-          category: '',
-          stock: '',
-          image_url: ''
+          category: 'Oversized Tees',
+          stock: '1',
+          image_url: '',
+          size: 'Oversized L',
+          condition: 'Good',
+          measurements: 'Chest: 24", Length: 29"',
+          flaws: 'None',
+          is_featured: false
         });
         setImagePreview('');
       }
       setImageFile(null);
+      setError('');
     }
   }, [isOpen, isEdit, product]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
     setError('');
   };
@@ -57,14 +89,12 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
       return;
     }
 
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       setError('File size must be less than 5MB');
       return;
@@ -73,24 +103,18 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
     setImageFile(file);
     setError('');
 
-    // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setImagePreview(e.target.result);
     };
     reader.readAsDataURL(file);
 
-    // Upload image
     setUploadingImage(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const data = new FormData();
+      data.append('file', file);
 
-      // Use the configured api instance for upload
-      // Don't set Content-Type header - axios will set it automatically with boundary for FormData
-      const response = await api.post('/api/v1/upload/image', formData);
-
-      // Use the full URL from the response, or construct it from the baseURL
+      const response = await api.post('/api/v1/upload/image', data);
       const imageUrl = response.data.file_url.startsWith('http') 
         ? response.data.file_url 
         : `${api.defaults.baseURL}${response.data.file_url}`;
@@ -99,12 +123,9 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
         ...prev,
         image_url: imageUrl
       }));
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Upload failed';
-      setError(`Image upload failed: ${errorMessage}`);
-      setImageFile(null);
-      setImagePreview('');
+    } catch (err) {
+      console.error('Failed to upload image:', err);
+      setError('Failed to upload image. You can also paste an image URL directly.');
     } finally {
       setUploadingImage(false);
     }
@@ -116,272 +137,280 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, isEdit = false 
     setError('');
 
     try {
-      // Validate form
-      if (!formData.name || !formData.description || !formData.price || !formData.category || !formData.stock) {
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stock: parseInt(formData.stock),
+        image_url: formData.image_url.trim(),
+        size: formData.size.trim(),
+        condition: formData.condition,
+        measurements: formData.measurements.trim(),
+        flaws: formData.flaws.trim(),
+        is_featured: formData.is_featured
+      };
+
+      if (!payload.name || !payload.category || isNaN(payload.price)) {
         throw new Error('Please fill in all required fields');
       }
 
-      if (isNaN(parseFloat(formData.price)) || parseFloat(formData.price) <= 0) {
-        throw new Error('Please enter a valid price');
-      }
-
-      if (isNaN(parseInt(formData.stock)) || parseInt(formData.stock) < 0) {
-        throw new Error('Please enter a valid stock quantity');
-      }
-
-      await onSave({
-        ...formData,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock)
-      });
-      
+      await onSave(payload);
       onClose();
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to save product:', err);
+      setError(err.message || 'Failed to save product');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      stock: '',
-      image_url: ''
-    });
-    setImageFile(null);
-    setImagePreview('');
-    setError('');
-    setLoading(false);
-    setUploadingImage(false);
-    onClose();
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-    >
-      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-        <div className="mt-3">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b">
-            <h3 className="text-lg font-medium text-gray-900">
-              {isEdit ? 'Edit Product' : 'Create New Product'}
-            </h3>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-60 flex items-center justify-center p-4">
+      <div className="bg-white border-2 border-black max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+        <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-xl font-bold uppercase tracking-tight text-gray-900">
+              {isEdit ? 'Edit Streetwear Piece' : 'Add New Streetwear Drop'}
+            </h2>
+            <p className="text-xs font-mono text-gray-500">RAO'S THRIFT INVENTORY MANAGEMENT</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-black text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-500 text-red-700 text-xs font-mono font-bold">
+            ⚠️ {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Name */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Item Title *
+              </label>
+              <input
+                type="text"
+                name="name"
+                required
+                value={formData.name}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder="e.g. Acid Wash Nirvana Vintage Graphic Tee"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Collection / Category *
+              </label>
+              <select
+                name="category"
+                required
+                value={formData.category}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black text-sm"
+              >
+                {categories.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Price in INR */}
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Price (₹ INR) *
+              </label>
+              <input
+                type="number"
+                step="1"
+                name="price"
+                required
+                value={formData.price}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder="e.g. 1499"
+              />
+            </div>
+
+            {/* Tagged Size */}
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Tagged Size *
+              </label>
+              <input
+                type="text"
+                name="size"
+                required
+                value={formData.size}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder="e.g. Oversized XL, 32x32, One Size"
+              />
+            </div>
+
+            {/* Thrift Condition */}
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Thrift Condition *
+              </label>
+              <select
+                name="condition"
+                required
+                value={formData.condition}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black text-sm"
+              >
+                {conditions.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Stock Quantity */}
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Stock Quantity (0 = Sold Out, 1 = 1-of-1) *
+              </label>
+              <input
+                type="number"
+                name="stock"
+                required
+                min="0"
+                value={formData.stock}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder="1"
+              />
+            </div>
+
+            {/* Featured toggle */}
+            <div className="flex items-center pt-6">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_featured"
+                  checked={formData.is_featured}
+                  onChange={handleInputChange}
+                  className="w-4 h-4 text-black focus:ring-black border-gray-300"
+                />
+                <span className="text-xs font-mono font-bold uppercase text-gray-800">
+                  Feature in Drop 04 / Homepage Highlights
+                </span>
+              </label>
+            </div>
+
+            {/* Exact Measurements */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Garment Measurements
+              </label>
+              <input
+                type="text"
+                name="measurements"
+                value={formData.measurements}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder='e.g. Pit to pit: 24.5", Length: 29.5", Shoulder: 22"'
+              />
+            </div>
+
+            {/* Flaws and Distressing */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Flaws & Character Disclosure
+              </label>
+              <input
+                type="text"
+                name="flaws"
+                value={formData.flaws}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder="e.g. Natural vintage fading on graphic, clean hem (or 'None')"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Curator Description
+              </label>
+              <textarea
+                name="description"
+                rows="3"
+                value={formData.description}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm"
+                placeholder="Describe fit, fabric weight, archival backstory, and styling tips..."
+              />
+            </div>
+
+            {/* Image URL or File Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase text-gray-700 mb-1">
+                Product Image URL
+              </label>
+              <input
+                type="url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-black font-sans text-sm mb-2"
+                placeholder="https://images.unsplash.com/... or upload below"
+              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:border file:border-black file:text-xs file:font-mono file:bg-gray-100 hover:file:bg-black hover:file:text-white cursor-pointer"
+                />
+                {uploadingImage && <span className="text-xs font-mono text-gray-500">Uploading...</span>}
+              </div>
+            </div>
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="md:col-span-2">
+                <p className="text-[11px] font-mono text-gray-500 uppercase mb-1">Image Preview:</p>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-28 h-36 object-cover border border-gray-300"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Product Name */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product name"
-                  required
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select category</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Home & Garden">Home & Garden</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Books">Books</option>
-                  <option value="Beauty">Beauty</option>
-                  <option value="Toys">Toys</option>
-                  <option value="Automotive">Automotive</option>
-                </select>
-              </div>
-
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price ($) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-
-              {/* Stock */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Stock Quantity *
-                </label>
-                <input
-                  type="number"
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0"
-                  required
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Image
-                </label>
-                <div className="space-y-4">
-                  {/* File Upload */}
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        {uploadingImage ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                            <span className="text-sm text-gray-500">Uploading...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <svg className="w-8 h-8 mb-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                            <p className="mb-2 text-sm text-gray-500">
-                              <span className="font-semibold">Click to upload</span> or drag and drop
-                            </p>
-                            <p className="text-xs text-gray-500">PNG, JPG, GIF or WEBP (MAX. 5MB)</p>
-                          </>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={uploadingImage}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Image Preview */}
-                  {imagePreview && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
-                      <div className="relative inline-block">
-                        <img
-                          src={imagePreview}
-                          alt="Preview"
-                          className="w-32 h-32 object-cover rounded-lg border"
-                        />
-                        {imageFile && (
-                          <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Current Image (for edit mode) */}
-                  {isEdit && product?.image_url && !imagePreview && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Current Image:</p>
-                      <img
-                        src={product.image_url}
-                        alt="Current"
-                        className="w-32 h-32 object-cover rounded-lg border"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product description"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : (isEdit ? 'Update Product' : 'Create Product')}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 border border-gray-300 text-xs font-mono uppercase font-bold hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2.5 bg-black text-white hover:bg-gray-800 text-xs font-mono uppercase font-bold"
+            >
+              {loading ? 'Saving...' : (isEdit ? 'Update Piece' : 'Add Piece to Drop')}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

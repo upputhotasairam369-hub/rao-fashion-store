@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ArrowRight, Mail, Lock } from 'lucide-react';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -21,6 +22,7 @@ const Signup = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -38,11 +40,11 @@ const Signup = () => {
     }
 
     setLoading(true);
-    
     try {
       const result = await signup({
         first_name: formData.firstName,
         last_name: formData.lastName,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         password: formData.password
       });
@@ -50,10 +52,9 @@ const Signup = () => {
       if (result.success) {
         navigate('/');
       } else {
-        setError(result.error || 'Signup failed');
+        setError(result.error || 'Signup failed. Please try a different email.');
       }
-    } catch (error) {
-      console.error('Signup failed:', error);
+    } catch (err) {
       setError('Signup failed. Please try again.');
     } finally {
       setLoading(false);
@@ -61,157 +62,134 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">E</span>
+    <div className="min-h-screen bg-[#F2EFE8] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        
+        {/* Brand Mark */}
+        <Link to="/" className="inline-flex items-center space-x-2 mb-4">
+          <div className="w-12 h-12 bg-[#151515] text-[#CCFF00] flex items-center justify-center font-display font-black text-2xl border border-[#151515]">
+            RT
           </div>
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
-            sign in to your existing account
+        </Link>
+
+        <h1 className="font-display font-black text-3xl uppercase tracking-tight text-[#151515]">
+          JOIN RAO'S THRIFT
+        </h1>
+        <p className="mt-2 text-xs font-mono text-[#787873] uppercase tracking-wider">
+          ALREADY AN ARCHIVE MEMBER?{' '}
+          <Link to="/login" className="font-bold text-[#151515] hover:text-[#CCFF00] hover:bg-[#151515] px-1 transition-all underline">
+            SIGN IN HERE
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-soft sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-accent-50 border border-accent-200 text-accent-800 px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
+        <div className="bg-white border-2 border-[#151515] p-8 shadow-brutal space-y-6">
+          
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-500 text-red-700 text-xs font-mono font-bold">
+              ⚠️ {error}
+            </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
+                <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#151515] mb-1">
+                  FIRST NAME *
                 </label>
-                <div className="mt-1">
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    autoComplete="given-name"
-                    required
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="input-field"
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="firstName"
+                  required
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  placeholder="First"
+                />
               </div>
-
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
+                <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#151515] mb-1">
+                  LAST NAME *
                 </label>
-                <div className="mt-1">
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    autoComplete="family-name"
-                    required
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="input-field"
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="lastName"
+                  required
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  placeholder="Last"
+                />
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+              <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#151515] mb-1">
+                EMAIL ADDRESS *
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
-                  id="email"
-                  name="email"
                   type="email"
-                  autoComplete="email"
+                  name="email"
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="input-field"
+                  className="input-field pl-10"
+                  placeholder="you@domain.com"
                 />
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#787873]" />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+              <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#151515] mb-1">
+                CREATE PASSWORD *
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
-                  id="password"
-                  name="password"
                   type="password"
-                  autoComplete="new-password"
+                  name="password"
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="input-field"
+                  className="input-field pl-10"
+                  placeholder="Min. 6 characters"
                 />
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#787873]" />
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
+              <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#151515] mb-1">
+                CONFIRM PASSWORD *
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
                   type="password"
-                  autoComplete="new-password"
+                  name="confirmPassword"
                   required
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="input-field"
+                  className="input-field pl-10"
+                  placeholder="Re-enter password"
                 />
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#787873]" />
               </div>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary py-3 text-lg font-medium"
-              >
-                {loading ? 'Creating account...' : 'Create account'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-accent py-3.5 text-xs flex items-center justify-center gap-2 shadow-brutal-sm mt-6"
+            >
+              <span>{loading ? 'CREATING ACCOUNT...' : 'CREATE RAO\'S THRIFT ACCOUNT'}</span>
+              <ArrowRight size={16} />
+            </button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">By signing up, you agree to our</span>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                <button type="button" className="font-medium text-primary-600 hover:text-primary-500">
-                  Terms of Service
-                </button>
-                {' '}and{' '}
-                <button type="button" className="font-medium text-primary-600 hover:text-primary-500">
-                  Privacy Policy
-                </button>
-              </p>
-            </div>
+          <div className="pt-2 text-[10px] font-mono text-[#787873] text-center border-t border-[#ECE8DF]">
+            By creating an account, you agree to RAO'S THRIFT Terms of Service & Privacy Policy.
           </div>
         </div>
       </div>
@@ -220,6 +198,3 @@ const Signup = () => {
 };
 
 export default Signup;
-
-
-

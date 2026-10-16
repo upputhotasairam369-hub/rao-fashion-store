@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import uuid
+import os
 from passlib.context import CryptContext
 from app.routers.auth import verify_token
 from sqlalchemy.orm import Session
@@ -19,6 +20,11 @@ class ProductCreate(BaseModel):
     category: str
     image_url: str
     stock: int
+    size: Optional[str] = "One Size"
+    condition: Optional[str] = "Good"
+    measurements: Optional[str] = None
+    flaws: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -27,6 +33,11 @@ class ProductUpdate(BaseModel):
     category: Optional[str] = None
     image_url: Optional[str] = None
     stock: Optional[int] = None
+    size: Optional[str] = None
+    condition: Optional[str] = None
+    measurements: Optional[str] = None
+    flaws: Optional[str] = None
+    is_featured: Optional[bool] = None
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -40,7 +51,6 @@ class AdminStats(BaseModel):
 
 # Import real product data
 from app.routers.products import mock_products
-from app.routers.orders import orders_db
 
 # Initialize admin data with real products
 admin_products = mock_products.copy()
@@ -103,7 +113,12 @@ async def create_product(
             category=product.category,
             image_url=product.image_url,
             stock=product.stock,
-            rating=0.0
+            rating=0.0,
+            size=product.size or "One Size",
+            condition=product.condition or "Good",
+            measurements=product.measurements or "",
+            flaws=product.flaws or "",
+            is_featured=product.is_featured or False
         )
         
         db.add(db_product)
@@ -148,6 +163,11 @@ async def get_admin_products(
                 "image_url": _normalize_image_url(db_product.image_url, request),
                 "stock": db_product.stock,
                 "rating": db_product.rating,
+                "size": getattr(db_product, 'size', 'One Size') or 'One Size',
+                "condition": getattr(db_product, 'condition', 'Good') or 'Good',
+                "measurements": getattr(db_product, 'measurements', '') or '',
+                "flaws": getattr(db_product, 'flaws', '') or '',
+                "is_featured": getattr(db_product, 'is_featured', False) or False,
                 "created_at": db_product.created_at.isoformat(),
                 "updated_at": db_product.updated_at.isoformat()
             }
@@ -312,7 +332,7 @@ async def update_order(
         db.commit()
         db.refresh(order)
         
-        return {"message": "Order updated successfully"}
+        return {"message": "Order updated successfully", "status": order.status, "id": order.id}
     except HTTPException:
         raise
     except Exception as e:
@@ -325,20 +345,54 @@ async def update_order(
 @router.get("/orders/{order_id}")
 async def get_admin_order(
     order_id: str,
-    current_user_id: str = Depends(verify_token)
+    current_user_id: str = Depends(verify_token),
+    db: Session = Depends(get_db)
 ):
-    """Get specific order details for admin"""
-    if not check_admin_role(current_user_id):
+    """Get specific order details for admin from database"""
+    if not check_admin_role(current_user_id, db):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
-        order = next((o for o in admin_orders if o["id"] == order_id), None)
+        order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        return order
+        user = db.query(UserModel).filter(UserModel.id == order.user_id).first()
+        order_items = db.query(OrderItemModel).filter(OrderItemModel.order_id == order.id).all()
+        
+        items_with_details = []
+        for item in order_items:
+            product = db.query(ProductModel).filter(ProductModel.id == item.product_id).first()
+            items_with_details.append({
+                "product_id": item.product_id,
+                "name": item.name,
+                "quantity": item.quantity,
+                "price": item.price,
+                "subtotal": item.price * item.quantity,
+                "image_url": product.image_url if product else item.image_url
+            })
+        
+        return {
+            "id": order.id,
+            "user_id": order.user_id,
+            "user_email": user.email if user else "Unknown",
+            "user_name": user.name if user else "Unknown User",
+            "items": items_with_details,
+            "total": order.total,
+            "subtotal": order.subtotal,
+            "tax": order.tax,
+            "shipping": order.shipping,
+            "status": order.status,
+            "shipping_address": order.shipping_address,
+            "notes": order.shipping_address,
+            "created_at": order.created_at.isoformat(),
+            "updated_at": order.updated_at.isoformat()
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -347,26 +401,37 @@ def hash_password(password: str) -> str:
     """Hash a password using bcrypt"""
     return pwd_context.hash(password)
 
+class InitDbRequest(BaseModel):
+    admin_email: Optional[str] = None
+    admin_password: Optional[str] = None
+    admin_name: Optional[str] = "Admin User"
+
 @router.post("/init-database")
-async def initialize_database(db: Session = Depends(get_db)):
+async def initialize_database(
+    request: Optional[InitDbRequest] = None,
+    db: Session = Depends(get_db)
+):
     """Initialize database with admin user and sample products"""
     try:
-        # Check if admin user already exists
-        existing_admin = db.query(UserModel).filter(UserModel.email == "admin@example.com").first()
-        if existing_admin:
-            return {"message": "Database already initialized", "admin_exists": True}
-        
-        # Create admin user
-        admin_user = UserModel(
-            id=str(uuid.uuid4()),
-            email="admin@example.com",
-            name="Admin User",
-            password_hash=hash_password("admin123"),
-            role="admin",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        db.add(admin_user)
+        admin_email = (request and request.admin_email) or os.getenv("INITIAL_ADMIN_EMAIL")
+        admin_password = (request and request.admin_password) or os.getenv("INITIAL_ADMIN_PASSWORD")
+        admin_name = (request and request.admin_name) or os.getenv("INITIAL_ADMIN_NAME", "Admin User")
+
+        admin_created = False
+        if admin_email and admin_password:
+            existing_admin = db.query(UserModel).filter(UserModel.email == admin_email).first()
+            if not existing_admin:
+                admin_user = UserModel(
+                    id=str(uuid.uuid4()),
+                    email=admin_email,
+                    name=admin_name,
+                    password_hash=hash_password(admin_password),
+                    role="admin",
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(admin_user)
+                admin_created = True
         
         # Create sample products
         sample_products = [
@@ -476,12 +541,8 @@ async def initialize_database(db: Session = Depends(get_db)):
         
         return {
             "message": "Database initialized successfully",
-            "admin_created": True,
-            "products_created": len(sample_products),
-            "admin_credentials": {
-                "email": "admin@example.com",
-                "password": "admin123"
-            }
+            "admin_created": admin_created,
+            "products_created": len(sample_products)
         }
         
     except Exception as e:

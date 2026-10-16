@@ -1,36 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Star } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { Heart, ArrowRight } from 'lucide-react';
+import ProductCard from '../components/ProductCard';
 import { useAuth } from '../context/AuthContext';
 import { api, endpoints } from '../api/api';
 
 const Favorites = () => {
   const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [failedImages, setFailedImages] = useState(new Set());
-  const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
-  const [isAdding, setIsAdding] = useState({});
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadFavoriteProducts();
-    }
-    
-    // Listen for favorites updates
-    const handleFavoritesUpdate = () => {
-      if (isAuthenticated) {
-        loadFavoriteProducts();
-      }
-    };
-    
-    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
-    
-    return () => {
-      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
-    };
-  }, [isAuthenticated]);
 
   const loadFavoriteProducts = async () => {
     if (!isAuthenticated) {
@@ -51,194 +29,87 @@ const Favorites = () => {
     }
   };
 
-  const handleToggleFavorite = async (productId) => {
-    try {
-      await api.delete(endpoints.favorites.remove(productId));
-      setFavoriteProducts(prev => prev.filter(product => product.id !== productId));
-      
-      // Dispatch custom event to update header count
-      window.dispatchEvent(new CustomEvent('favoritesUpdated'));
-    } catch (error) {
-      console.error('Failed to remove favorite:', error);
-      // Optionally show error message to user
-    }
-  };
+  useEffect(() => {
+    loadFavoriteProducts();
 
-  const handleAddToCart = async (product) => {
-    if (!isAuthenticated) {
-      window.location.href = '/login';
-      return;
-    }
+    const handleFavoritesUpdate = () => {
+      loadFavoriteProducts();
+    };
 
-    setIsAdding(prev => ({ ...prev, [product.id]: true }));
-    try {
-      await addToCart(product.id, 1);
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-    } finally {
-      setIsAdding(prev => ({ ...prev, [product.id]: false }));
-    }
-  };
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
+    return () => window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
+  }, [isAuthenticated]);
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
-  const renderRating = (rating, reviewCount) => {
-    if (!rating) return null;
-
+  if (!isAuthenticated) {
     return (
-      <div className="flex items-center space-x-1">
-        <div className="flex items-center">
-          {[...Array(5)].map((_, i) => (
-            <Star
-              key={i}
-              size={14}
-              className={`${
-                i < Math.floor(rating)
-                  ? 'text-yellow-400 fill-current'
-                  : 'text-gray-300'
-              }`}
-            />
-          ))}
-        </div>
-        <span className="text-xs text-gray-500">({reviewCount})</span>
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (favoriteProducts.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Heart size={64} className="mx-auto text-gray-400 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No favorites yet</h2>
-          <p className="text-gray-600 mb-6">Start adding products to your favorites!</p>
-          <Link to="/products" className="btn-primary">
-            Browse Products
+      <div className="min-h-screen bg-[#F2EFE8] flex items-center justify-center px-4 py-20">
+        <div className="max-w-md w-full bg-white border-2 border-[#151515] p-10 text-center shadow-brutal">
+          <Heart size={32} className="mx-auto text-[#151515] mb-4" />
+          <h2 className="font-display font-black text-2xl uppercase tracking-tight text-[#151515] mb-2">
+            WISHLIST ACCESS
+          </h2>
+          <p className="text-xs font-mono text-[#787873] mb-6">
+            Log in to save rare vintage drops and one-of-one silhouettes to your personal wishlist.
+          </p>
+          <Link to="/login?redirect=favorites" className="btn-accent w-full block py-3.5 text-center text-xs">
+            LOG IN TO VIEW SAVED PIECES →
           </Link>
         </div>
       </div>
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F2EFE8] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#151515] border-t-[#CCFF00] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Favorites</h1>
-          <p className="text-gray-600">
-            {favoriteProducts.length} favorite product{favoriteProducts.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {favoriteProducts.map((product) => (
-            <div key={product.id} className="product-card group">
-              {/* Product Image */}
-              <div className="relative overflow-hidden bg-gray-100">
-                <Link to={`/products/${product.id}`}>
-                  {product.image_url && !failedImages.has(product.id) ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                      onError={() => setFailedImages(prev => new Set(prev).add(product.id))}
-                    />
-                  ) : (
-                    <div className="w-full h-48 flex items-center justify-center bg-gray-200">
-                      <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                    </div>
-                  )}
-                </Link>
-                
-                {/* Remove from Favorites Button */}
-                <button 
-                  onClick={() => handleToggleFavorite(product.id)}
-                  className="absolute top-2 right-2 p-2 bg-red-500 rounded-full shadow-soft opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-600"
-                  title="Remove from favorites"
-                >
-                  <Heart size={16} className="text-white fill-current" />
-                </button>
-                
-                {/* Stock Badge */}
-                {product.stock <= 10 && product.stock > 0 && (
-                  <span className="absolute top-2 left-2 badge badge-warning">
-                    Low Stock
-                  </span>
-                )}
-                {product.stock === 0 && (
-                  <span className="absolute top-2 left-2 badge badge-error">
-                    Out of Stock
-                  </span>
-                )}
-              </div>
-
-              {/* Product Info */}
-              <div className="p-4">
-                {/* Category */}
-                <div className="text-xs text-primary-600 font-medium mb-1">
-                  {product.category}
-                </div>
-
-                {/* Product Name */}
-                <Link to={`/products/${product.id}`}>
-                  <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 hover:text-primary-600 transition-colors">
-                    {product.name}
-                  </h3>
-                </Link>
-
-                {/* Rating */}
-                {renderRating(product.rating, product.review_count)}
-
-                {/* Price */}
-                <div className="mt-2 mb-3">
-                  <span className="text-lg font-bold text-gray-900">
-                    {formatPrice(product.price)}
-                  </span>
-                </div>
-
-                {/* Add to Cart Button */}
-                <button
-                  onClick={() => handleAddToCart(product)}
-                  disabled={isAdding[product.id] || product.stock === 0}
-                  className={`w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-                    product.stock === 0
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-primary-600 hover:bg-primary-700 text-white hover:shadow-medium'
-                  }`}
-                >
-                  {isAdding[product.id] ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Adding...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart size={16} />
-                      <span>
-                        {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                      </span>
-                    </>
-                  )}
-                </button>
-              </div>
+    <div className="min-h-screen bg-[#F2EFE8] py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <div className="border-b-2 border-[#151515] pb-6 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="text-xs font-mono tracking-widest text-[#787873] uppercase mb-1">
+              SAVED SILHOUETTES
             </div>
-          ))}
+            <h1 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-[#151515]">
+              YOUR WISHLIST ({favoriteProducts.length})
+            </h1>
+          </div>
+          <Link
+            to="/products"
+            className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-[#151515] hover:text-[#787873]"
+          >
+            <span>CONTINUE BROWSING</span>
+            <ArrowRight size={14} />
+          </Link>
         </div>
+
+        {favoriteProducts.length === 0 ? (
+          <div className="bg-white border-2 border-[#151515] p-16 text-center shadow-brutal max-w-lg mx-auto my-12">
+            <Heart size={40} className="mx-auto text-[#787873] mb-4" />
+            <h3 className="font-display font-black text-2xl uppercase text-[#151515] mb-2">
+              NO SAVED PIECES YET
+            </h3>
+            <p className="text-xs font-mono text-[#787873] mb-6">
+              Click the heart icon on any product card or detail page to bookmark one-of-one finds while you decide.
+            </p>
+            <Link to="/products" className="btn-accent">
+              BROWSE CURRENT DROP →
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {favoriteProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
