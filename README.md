@@ -1,4 +1,4 @@
-# 🛒 **E-Commerce Store - Full Stack Application**
+# 🛒 Rao Fashion Store (Rao's Thrift) — Full Stack Application
 
 [![React](https://img.shields.io/badge/React-18.0-blue?logo=react&logoColor=white)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -6,12 +6,11 @@
 [![Docker](https://img.shields.io/badge/Docker-24.0-blue?logo=docker&logoColor=white)](https://docker.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3-blue?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/Status-Live%20Production-brightgreen)](https://ecommerce-frontend-192614808954.us-central1.run.app)
-[![Deployment](https://img.shields.io/badge/Deployment-Google%20Cloud%20Run-blue)](https://cloud.google.com/run)
 
-A modern, full-stack e-commerce application built with **React**, **FastAPI**, and **PostgreSQL**, featuring a complete admin panel and real-time data synchronization.
+**Rao Fashion Store** (Rao's Thrift) is a high-performance, full-stack streetwear & vintage thrift e-commerce platform built with **React**, **FastAPI**, and **PostgreSQL / SQLite**. Features include an editorial streetwear storefront, INR (₹) checkout with COD/UPI options, standardized thrift grading & measurements, and an executive store management dashboard.
 
-> 🚀 **Live Demo Available** | 📱 **Mobile Responsive** | 🔒 **Production Ready** | 🐳 **Dockerized**
+> 📖 **Handover Documentation:** See [CLIENT_HANDOVER.md](CLIENT_HANDOVER.md) for full architecture notes, verified accounts, and deployment guides.
+
 
 ## 📋 **Table of Contents**
 
